@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NorthStar-ClearGate — Intelligent Hiring</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* NorthStar Brand Theme */
+  --bg: #F8F9FA;
+  --surface: #FFFFFF;
+  --border: #E4E4E7;
+  --border-dark: #D4D4D8;
+  --ink: #09090B;
+  --ink2: #3F3F46;
+  --ink3: #71717A;
+  --accent2: #E14D2A; 
+  --accent-blue: #2563EB; 
+  --pass: #16A34A;
+  --fail: #DC2626;
+  
+  --radius: 6px;
+  --radius-lg: 12px;
+  --shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.08);
+  
+  --font-serif: 'DM Serif Display', Georgia, serif;
+  --font-sans: 'Instrument Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+.hidden { display: none !important; }
+
+/* ── BRUTALIST PRELOADER ── */
+#loading-screen {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999; 
+  display: flex; align-items: center; justify-content: center; flex-direction: column; 
+  transition: transform 0.8s cubic-bezier(0.76, 0, 0.24, 1);
+}
+.loader-count { font-family: var(--font-sans); font-size: 18vw; font-weight: 800; color: var(--ink); line-height: 1; letter-spacing: -0.05em; }
+.loader-text { font-family: var(--font-mono); font-size: 12px; color: var(--ink); opacity: 0.4; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 10px; }
+
+/* ── CINEMATIC / BRUTALIST LANDING PAGE ── */
+#portal-chooser {
+  min-height: 100vh; background: var(--bg); color: var(--ink); position: relative; overflow: hidden; 
+  display: flex; flex-direction: column; justify-content: space-between; padding: 4vw 6vw;
+}
+
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.15; z-index: 0; animation: pulse 8s infinite alternate; }
+.orb-1 { width: 500px; height: 500px; background: var(--accent2); top: -10%; left: -10%; }
+.orb-2 { width: 600px; height: 600px; background: var(--accent-blue); bottom: -10%; right: -10%; animation-delay: 2s; }
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.1; } 100% { transform: scale(1.1); opacity: 0.2; } }
+
+.h-header { display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; animation: fadeDown 1s 0.5s both; }
+.h-brand { font-family: var(--font-sans); font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em; }
+.h-brand span { color: var(--accent2); }
+.h-meta { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; text-align: right; opacity: 0.5; line-height: 1.4; letter-spacing: 0.05em; }
+
+.h-hero { z-index: 10; margin-top: 12vh; animation: fadeUp 1s 0.7s both; display: flex; flex-direction: column; align-items: flex-start; width: 100%; max-width: 1400px; margin-left: auto; margin-right: auto; }
+.h-title-main { font-family: var(--font-sans); font-size: 11vw; font-weight: 800; color: var(--ink); line-height: 0.85; letter-spacing: -0.04em; text-transform: uppercase; margin: 0; }
+.h-title-outline { color: transparent; -webkit-text-stroke: 2px var(--ink); font-style: italic; display: block; margin-left: 8vw; }
+@media (min-width: 1024px) { .h-title-main { font-size: 10vw; } .h-title-outline { margin-left: 6vw; } }
+
+.h-options { display: flex; flex-direction: column; gap: 4vw; z-index: 10; margin-top: 12vh; border-top: 1px solid rgba(9,9,11,0.1); padding-top: 4vh; animation: fadeUp 1s 0.9s both; max-width: 1400px; width: 100%; margin-left: auto; margin-right: auto; }
+@media (min-width: 768px) { .h-options { flex-direction: row; } }
+.h-portal-item { flex: 1; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.4s ease; padding: 20px 0; }
+.h-portal-item:hover { transform: translateY(-8px); }
+.h-num { font-family: var(--font-mono); font-size: 14px; margin-bottom: 16px; opacity: 0.4; }
+.h-title { font-family: var(--font-sans); font-size: 40px; font-weight: 800; color: var(--ink); text-transform: uppercase; letter-spacing: -0.02em; transition: color 0.3s; }
+@media (min-width: 1024px) { .h-title { font-size: 3.5vw; } }
+.h-portal-item:first-child:hover .h-title { color: var(--accent2); } 
+.h-portal-item:last-child:hover .h-title { color: var(--accent-blue); }  
+.h-desc { font-size: 15px; color: var(--ink2); margin-top: 12px; max-width: 320px; line-height: 1.5; }
+
+.marquee-container { position: absolute; top: 45%; left: 0; width: 100vw; overflow: hidden; z-index: 1; opacity: 0.03; pointer-events: none; transform: rotate(-4deg) scale(1.1); }
+.marquee { display: inline-block; font-family: var(--font-sans); font-size: 12vw; font-weight: 800; white-space: nowrap; text-transform: uppercase; color: var(--ink); animation: marquee 35s linear infinite; }
+
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── SHARED AUTH SHELL ── */
+.auth-shell { min-height: 100vh; display: flex; align-items: stretch; background: var(--bg); }
+.auth-panel-left { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 48px; background: var(--ink); color: white;}
+.auth-panel-left.applicant-side { background: #18181B; }
+.auth-panel-right { flex: 1; background: var(--surface); display: flex; flex-direction: column; justify-content: center; padding: 48px 80px; overflow-y: auto; border-left: 1px solid var(--border); }
+.apl-brand { font-family: var(--font-serif); font-size: 24px; color: white;}
+.apl-brand span { color: var(--accent2); }
+.apl-back { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: white; cursor: pointer; opacity: 0.6; transition: opacity var(--transition); letter-spacing: 0.1em; margin-top: 12px; display: inline-block; }
+.apl-back:hover { opacity: 1; color: var(--accent2); }
+.apl-context-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; margin-bottom: 16px; background: rgba(255,255,255,0.1); }
+.apl-context-title { font-family: var(--font-serif); font-size: 36px; line-height: 1.1; margin-bottom: 12px; color: white;}
+
+/* ── FORM ELEMENTS ── */
+.form-section-title { font-family: var(--font-serif); font-size: 32px; margin-bottom: 6px; color: var(--ink); }
+.form-section-sub { font-family: var(--font-mono); font-size: 12px; color: var(--ink3); margin-bottom: 32px; }
+.form-field { margin-bottom: 16px; }
+.form-label { display: block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); margin-bottom: 8px; font-weight: 600;}
+.form-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border-dark); border-radius: var(--radius); font-family: var(--font-sans); font-size: 14px; background: var(--bg); transition: border var(--transition), box-shadow var(--transition); color: var(--ink); }
+.form-input:focus { border-color: var(--ink); background: var(--surface); outline: none; box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.btn-primary { width: 100%; padding: 14px; background: var(--ink); color: white; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.btn-primary.accent { background: var(--accent2); }
+.btn-primary.blue { background: var(--accent-blue); }
+
+.btn-social { width: 100%; padding: 12px; border: 1px solid var(--border-dark); background: var(--surface); border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; transition: background var(--transition); color: var(--ink);}
+.btn-social:hover { background: var(--bg); }
+
+.auth-divider { text-align: center; margin: 24px 0; font-family: var(--font-mono); font-size: 11px; color: var(--ink3); position: relative; text-transform: uppercase; letter-spacing: 0.1em; }
+.auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: calc(50% - 40px); height: 1px; background: var(--border-dark); }
+.auth-divider::before { left: 0; } .auth-divider::after { right: 0; }
+.auth-switch { font-size: 13px; color: var(--ink2); text-align: center; margin-top: 24px; }
+.auth-switch a { color: var(--ink); text-decoration: underline; cursor: pointer; font-weight: 700; text-underline-offset: 2px; }
+
+/* ── DASHBOARD LAYOUTS ── */
+.sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); position: fixed; height: 100vh; display: flex; flex-direction: column; z-index: 100; }
+.main-content { margin-left: 260px; min-height: 100vh; padding-bottom: 40px; background: var(--bg); }
+.topbar { padding: 16px 32px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;}
+.page { padding: 32px; display: none; animation: fadeIn 0.4s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow); margin-bottom: 24px;}
+.nav-item { padding: 12px 20px; margin: 4px 16px; border-radius: var(--radius); cursor: pointer; font-weight: 500; color: var(--ink2); transition: all var(--transition); font-size: 14px;}
+.nav-item:hover { background: var(--bg); color: var(--ink); }
+.nav-item.active { background: var(--ink); color: white; }
+
+/* ── NEW APPLICANT UI (BRUTALIST DOSSIER) ── */
+.applicant-topbar { background: var(--surface); border-bottom: 2px solid var(--ink); padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50;}
+.applicant-nav { display: flex; gap: 32px; }
+.ap-nav-link { color: var(--ink3); cursor: pointer; font-weight: 800; font-size: 15px; font-family: var(--font-sans); text-transform: uppercase; letter-spacing: 0.05em; transition: color var(--transition); position: relative; padding-bottom: 4px; }
+.ap-nav-link:hover { color: var(--ink); }
+.ap-nav-link.active { color: var(--ink); }
+.ap-nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: var(--accent-blue); }
+
+.applicant-content { max-width: 1300px; margin: 0 auto; padding: 48px 24px; }
+
+/* Brutalist Dossier Form styling */
+.dossier-card { background: var(--bg); border: 3px solid var(--ink); padding: 32px; position: relative; box-shadow: 8px 8px 0px var(--ink); margin-bottom: 32px; }
+.dossier-card::before { content: 'CANDIDATE_DATA //'; position: absolute; top: -12px; left: 24px; background: var(--bg); padding: 0 10px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
+.dossier-input { width: 100%; padding: 12px 0; border: none; border-bottom: 2px solid var(--ink); background: transparent; font-family: var(--font-sans); font-size: 16px; font-weight: 600; color: var(--ink); transition: border-color var(--transition); border-radius: 0; }
+.dossier-input:focus { outline: none; border-bottom-color: var(--accent-blue); }
+.dossier-label { display: block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ink3); margin-bottom: 4px; }
+
+.drop-zone { border: 2px dashed var(--ink); padding: 32px 20px; text-align: center; background: transparent; cursor: pointer; transition: all var(--transition); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;}
+.drop-zone:hover, .drop-zone.dragover { border-style: solid; background: var(--ink); color: white !important; }
+.drop-zone:hover .drop-icon, .drop-zone:hover .drop-text { color: white !important; }
+
+.stat-banner { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; border: 3px solid var(--ink); background: var(--surface); margin-bottom: 40px; box-shadow: 8px 8px 0px rgba(9,9,11,0.1); }
+.stat-box { padding: 24px 32px; border-right: 3px solid var(--ink); display: flex; flex-direction: column; gap: 4px;}
+.stat-box:last-child { border-right: none; }
+.stat-box .num { font-family: var(--font-sans); font-weight: 800; font-size: 48px; line-height: 1; color: var(--ink); letter-spacing: -0.05em; }
+.stat-box .lbl { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; color: var(--ink3); font-weight: 700;}
+
+/* Animated Result Icons */
+@keyframes pulse-star { 0% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(18deg); } 100% { transform: scale(1) rotate(0deg); } }
+@keyframes sway-cactus { 0% { transform: rotate(0deg); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } 100% { transform: rotate(0deg); } }
+@keyframes spin-glass { 0% { transform: rotate(0deg); } 100% { transform: rotate(180deg); } }
+
+.icon-anim-star { display: inline-block; animation: pulse-star 2s infinite ease-in-out; margin-right: 6px; font-size: 14px; }
+.icon-anim-cactus { display: inline-block; animation: sway-cactus 3s infinite ease-in-out; transform-origin: bottom center; margin-right: 6px; font-size: 14px; }
+.icon-anim-glass { display: inline-block; animation: spin-glass 2.5s infinite ease-in-out; margin-right: 6px; font-size: 14px; }
+
+.status-badge { font-family: var(--font-mono); font-size: 11px; padding: 6px 12px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; border: 1px solid transparent; text-transform: uppercase; letter-spacing: 0.05em;}
+.status-badge.pass { background: #ECFDF5; color: #16A34A; border-color: #A7F3D0; }
+.status-badge.fail { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+
+.btn-nav-outline { background: transparent; border: 2px solid var(--ink); color: var(--ink); padding: 8px 16px; font-family: var(--font-sans); font-size: 13px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+.btn-nav-outline:hover { background: var(--ink); color: white; }
+
+.toast-container { position: fixed; bottom: 32px; right: 32px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+.toast { padding: 16px 24px; border-radius: 0; border: 2px solid var(--ink); font-size: 14px; font-weight: 700; font-family: var(--font-sans); color: var(--ink); background: var(--surface); display: flex; align-items: center; gap: 12px; box-shadow: 4px 4px 0px var(--ink); animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.toast.success { border-left: 6px solid var(--pass); }
+.toast.error { border-left: 6px solid var(--fail); }
+.toast.warn { border-left: 6px solid #F59E0B; }
+@keyframes slideIn { from{transform:translateX(100%); opacity:0} to{transform:translateX(0); opacity:1} }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--ink3); font-family: var(--font-mono); background: var(--bg); border: 2px dashed var(--ink); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Brutalist Job Board Grid */
+.job-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+.job-list-card { display: flex; flex-direction: column; justify-content: space-between; padding: 32px; border: 3px solid var(--ink); background: var(--surface); transition: all var(--transition); box-shadow: 6px 6px 0px rgba(9,9,11,0.1); }
+.job-list-card:hover { transform: translateY(-4px) translateX(-4px); box-shadow: 10px 10px 0px var(--ink); }
+
+.expandable-row { display: none; background: #FAFAFA; border-bottom: 2px solid var(--ink); }
+.expandable-row.open { display: table-row; }
+.candidate-row:hover { background: #F4F4F5; }
+
+/* GrowthX Feed Cards */
+.gx-card { border: 3px solid var(--ink); padding: 24px; background: var(--surface); display: flex; flex-direction: column; gap: 16px; transition: all var(--transition); box-shadow: 4px 4px 0px rgba(9,9,11,0.1); cursor: pointer; text-decoration: none; color: inherit; }
+.gx-card:hover { transform: translateY(-4px) translateX(-4px); box-shadow: 8px 8px 0px var(--ink); border-color: var(--accent-blue); }
+.gx-header { display: flex; align-items: center; gap: 16px; }
+.gx-avatar { width: 48px; height: 48px; border-radius: 0; border: 2px solid var(--ink); background: var(--ink); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; font-family: var(--font-sans); }
+.gx-name { font-weight: 800; font-family: var(--font-sans); font-size: 16px; text-transform: uppercase; }
+.gx-handle { font-family: var(--font-mono); font-size: 12px; color: var(--ink3); }
+.gx-content { font-size: 16px; line-height: 1.6; font-weight: 500; }
+
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loader-count" id="loader-count">0</div>
+  <div class="loader-text">Loading Experience</div>
+</div>
+
+<div id="portal-chooser" class="hidden">
+  
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  
+  <div class="h-header">
+    <div class="h-brand">NORTHSTAR<span>·</span>CLEARGATE</div>
+    <div class="h-meta">Vol. 1 — 2026<br>Unbiased AI Hiring</div>
+  </div>
+
+  <div class="h-hero">
+    <h1 class="h-title-main">
+      Intelligent<br>
+      <span class="h-title-outline">Screening</span>
+    </h1>
+  </div>
+
+  <div class="h-options">
+    <div class="h-portal-item" onclick="showScreen('company-auth'); setCompanyAuthMode('login')">
+      <div class="h-num">01 // ADMIN</div>
+      <div class="h-title">Company</div>
+      <div class="h-desc">Create precise role blueprints and evaluate candidates transparently.</div>
+    </div>
+    <div class="h-portal-item" onclick="showScreen('applicant-auth'); setApplicantAuthMode('login')">
+      <div class="h-num">02 // USER</div>
+      <div class="h-title">Applicant</div>
+      <div class="h-desc">Submit your resume, predict match scores, and track applications.</div>
+    </div>
+  </div>
+
+  <div class="marquee-container">
+    <div class="marquee">
+      EVALUATE ON MERIT — NO BLACK BOXES — FROM INDIA WITH LOVE — 
+      EVALUATE ON MERIT — NO BLACK BOXES — FROM INDIA WITH LOVE — 
+    </div>
+  </div>
+</div>
+
+<div id="company-auth" class="auth-shell hidden">
+  <div class="auth-panel-left company-side">
+    <div>
+      <div class="apl-brand">northstar<span>·</span>cleargate</div>
+      <div class="apl-back" onclick="showScreen('portal-chooser')">← Return to Home</div>
+    </div>
+    <div class="apl-context">
+      <div class="apl-context-badge">🏢 Company Portal</div>
+      <div class="apl-context-title">HR &amp;<br>Talent Teams</div>
+      <div style="font-size:14px; opacity:0.8; line-height: 1.6;">Run unbiased AI screenings and construct detailed role blueprints.</div>
+    </div>
+    <div style="font-family:var(--font-mono); font-size:10px; opacity:0.5;">Secure Admin Access</div>
+  </div>
+  <div class="auth-panel-right" id="company-auth-right"></div>
+</div>
+
+<div id="company-onboard" class="auth-shell hidden">
+  <div class="auth-panel-left company-side">
+    <div><div class="apl-brand">northstar<span>·</span>cleargate</div></div>
+    <div class="apl-context">
+      <div class="apl-context-badge">🏢 Registration</div>
+      <div class="apl-context-title">Set up your<br>organization</div>
+    </div>
+    <div></div>
+  </div>
+  <div class="auth-panel-right">
+    <div class="form-section-title">Company Profile</div>
+    <div class="form-section-sub">Required to activate your HR dashboard</div>
+    <div class="form-field"><label class="form-label">Company Name<span>*</span></label><input class="form-input" id="co-company-name"></div>
+    <div class="form-field"><label class="form-label">Your Name<span>*</span></label><input class="form-input" id="co-contact-name"></div>
+    <div class="form-field"><label class="form-label">Work Email<span>*</span></label><input class="form-input" id="co-email" type="email" disabled style="background:var(--border); cursor:not-allowed;"></div>
+    <button class="btn-primary accent" id="btn-co-onboard-submit" style="margin-top:16px">Complete Setup →</button>
+  </div>
+</div>
+
+<div id="applicant-auth" class="auth-shell hidden">
+  <div class="auth-panel-left applicant-side">
+    <div>
+      <div class="apl-brand">northstar<span>·</span>cleargate</div>
+      <div class="apl-back" onclick="showScreen('portal-chooser')">← Return to Home</div>
+    </div>
+    <div class="apl-context">
+      <div class="apl-context-badge" style="color:var(--accent-blue)">👤 Applicant Portal</div>
+      <div class="apl-context-title">Apply with<br>confidence.</div>
+      <div style="font-size:14px; opacity:0.8; line-height: 1.6;">Every application is evaluated on pure merit, skills, and verified experience.</div>
+    </div>
+    <div style="font-family:var(--font-mono); font-size:10px; opacity:0.5;">Candidate Access</div>
+  </div>
+  <div class="auth-panel-right" id="applicant-auth-right"></div>
+</div>
+
+<div id="applicant-onboard" class="auth-shell hidden">
+  <div class="auth-panel-left applicant-side">
+    <div><div class="apl-brand">northstar<span>·</span>cleargate</div></div>
+    <div class="apl-context">
+      <div class="apl-context-badge" style="color:var(--accent-blue)">👤 Registration</div>
+      <div class="apl-context-title">Build your<br>profile</div>
+    </div>
+    <div></div>
+  </div>
+  <div class="auth-panel-right">
+    <div class="form-section-title">Your Details</div>
+    <div class="form-section-sub">Required to establish your candidate identity</div>
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">First Name<span>*</span></label><input class="form-input" id="ap-fname"></div>
+      <div class="form-field"><label class="form-label">Last Name<span>*</span></label><input class="form-input" id="ap-lname"></div>
+    </div>
+    <div class="form-field"><label class="form-label">Email<span>*</span></label><input class="form-input" id="ap-email" type="email" disabled style="background:var(--border); cursor:not-allowed;"></div>
+    <button class="btn-primary blue" id="btn-ap-onboard-submit" style="margin-top:16px">Complete Registration →</button>
+  </div>
+</div>
+
+<div id="company-app" class="hidden">
+  <nav class="sidebar">
+    <div style="padding: 24px 20px; border-bottom: 1px solid var(--border);">
+      <div style="font-family: var(--font-sans); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: -0.05em;">northstar<span style="color:var(--accent2)">·</span></div>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink3); margin-top: 4px;" id="sidebar-co-name">Company</div>
+    </div>
+    <div style="padding: 20px 0; flex: 1;">
+      <div style="font-family:var(--font-mono); font-size:10px; text-transform:uppercase; color:var(--ink3); padding:0 20px; margin-bottom:8px; letter-spacing:0.1em; font-weight:600;">Workspace</div>
+      <div class="nav-item active" data-page="dashboard">Dashboard Overview</div>
+      <div class="nav-item" data-page="blueprints">Role Blueprints</div>
+      <div class="nav-item" data-page="create-bp" style="color: var(--accent2); font-weight:700;">+ Create New Role</div>
+      
+      <div style="font-family:var(--font-mono); font-size:10px; text-transform:uppercase; color:var(--ink3); padding:0 20px; margin:24px 0 8px; letter-spacing:0.1em; font-weight:600;">Evaluation</div>
+      <div class="nav-item" data-page="results">Applicant Rankings</div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <button class="btn-nav-outline" onclick="showPage('dashboard')" id="co-back-btn" style="display:none; border: 1px solid var(--border-dark);">← Back</button>
+        <div style="font-family: var(--font-sans); font-weight:800; font-size: 24px; text-transform:uppercase; letter-spacing:-0.02em;" id="co-page-title">Dashboard</div>
+      </div>
+      <button class="btn-nav-outline" style="border: 1px solid var(--border-dark);" id="btn-company-logout">⌂ Home Portal</button>
+    </div>
+
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="lbl">Total Applicants</div><div class="num" id="stat-total">0</div></div>
+        <div class="stat-box"><div class="lbl">Passed AI Filter</div><div class="num" id="stat-passed" style="color:var(--pass)">0</div></div>
+        <div class="stat-box"><div class="lbl">Offers Published</div><div class="num" id="stat-published" style="color:var(--accent-blue)">0</div></div>
+        <div class="stat-box"><div class="lbl">Active Roles</div><div class="num" id="stat-bps">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-family:var(--font-sans); font-weight:800; font-size:20px; margin-bottom:16px;">Top Ranked Candidates</div>
+        <div id="recent-screenings-list" class="empty-state" style="border:1px dashed var(--border-dark);">No applicant screenings exist. Waiting for candidates to apply.</div>
+      </div>
+    </div>
+
+    <div class="page" id="page-blueprints">
+      <div id="blueprint-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;"></div>
+      <div id="bp-empty-state" class="empty-state hidden" style="border:1px dashed var(--border-dark);">
+        <div style="font-size:32px; margin-bottom:10px;">📋</div>
+        <div>No blueprints exist. Click "+ Create New Role" in the sidebar to define hiring criteria.</div>
+      </div>
+    </div>
+
+    <div class="page" id="page-create-bp">
+      <div class="card" style="max-width: 640px;">
+        <div class="card-title" style="font-family:var(--font-sans); font-weight:800; font-size:24px;">Create Role Blueprint</div>
+        <div class="card-sub">Define the specific parameters Gemini AI will use to evaluate candidate resumes.</div>
+        
+        <div class="form-row">
+          <div class="form-field"><label class="form-label">Role Title*</label><input class="form-input" id="cbp-title" placeholder="e.g., Data Scientist"></div>
+          <div class="form-field"><label class="form-label">Department</label><input class="form-input" id="cbp-dept" placeholder="e.g., Engineering"></div>
+        </div>
+        <div class="form-field"><label class="form-label">Required Experience</label><input class="form-input" id="cbp-exp" placeholder="e.g., 3+ Years in Python/SQL"></div>
+        <div class="form-field">
+          <label class="form-label">Core Skills & Qualifications (Comma separated)*</label>
+          <textarea class="form-input" id="cbp-skills" rows="3" placeholder="Machine Learning, Python, Statistical Modeling, TensorFlow"></textarea>
+        </div>
+        <div class="form-field" style="max-width: 200px;">
+          <label class="form-label">Passing Threshold (0-100)*</label>
+          <input class="form-input" id="cbp-score" type="number" placeholder="75">
+        </div>
+        
+        <button class="btn-primary accent" id="btn-save-bp" style="margin-top: 24px;">Save Blueprint to Database</button>
+      </div>
+    </div>
+
+    <div class="page" id="page-results">
+      <div class="card">
+        <table style="width:100%; border-collapse: collapse; text-align:left;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--ink); background: var(--bg);">
+              <th style="padding:16px; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; font-weight:600; color:var(--ink);">Applicant Name</th>
+              <th style="padding:16px; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; font-weight:600; color:var(--ink);">Role Applied</th>
+              <th style="padding:16px; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; font-weight:600; color:var(--ink);">AI Score & Rank</th>
+              <th style="padding:16px; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; font-weight:600; color:var(--ink);">Final Decision</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="applicant-app" class="hidden" style="background:var(--bg); min-height:100vh;">
+  <div class="applicant-topbar">
+    <div style="display:flex; align-items:center; gap:40px;">
+      <div class="apl-brand" style="font-family:var(--font-sans); font-weight:800; font-size:24px; text-transform:uppercase; letter-spacing:-0.05em; color:var(--ink);">northstar<span style="color:var(--accent-blue)">·</span></div>
+      <div class="applicant-nav">
+        <div class="ap-nav-link active" onclick="switchApTab('profile')">Intelligence Hub</div>
+        <div class="ap-nav-link" onclick="switchApTab('jobs')">Mission Board</div>
+        <div class="ap-nav-link" onclick="switchApTab('growthx')" style="color: var(--accent2);">GrowthX</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap: 24px;">
+      <div style="text-align:right;">
+        <div id="ap-topbar-name" style="font-family:var(--font-sans); font-weight:800; font-size:14px; text-transform:uppercase;"></div>
+        <div style="font-family:var(--font-mono); font-size:10px; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em;">Operative View</div>
+      </div>
+      <button class="btn-nav-outline" id="btn-applicant-logout">Terminate Session</button>
+    </div>
+  </div>
+
+  <div class="applicant-content">
+    
+    <div id="ap-tab-profile">
+      <div class="stat-banner">
+        <div class="stat-box"><div class="lbl">Missions Applied</div><div class="num" id="ap-stat-applied">0</div></div>
+        <div class="stat-box" style="background: var(--ink); color: white;">
+            <div class="lbl" style="color: rgba(255,255,255,0.6);">Offers Secured</div>
+            <div class="num" id="ap-stat-selected" style="color: var(--pass);">0</div>
+        </div>
+        <div class="stat-box"><div class="lbl">Pending Intel</div><div class="num" id="ap-stat-rejected">0</div></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 420px 1fr; gap: 40px; align-items: start;">
+        
+        <div class="dossier-card">
+          <div style="font-family:var(--font-sans); font-weight:800; font-size:28px; text-transform:uppercase; margin-bottom:24px; line-height:1;">Identity<br>Parameters</div>
+          
+          <div class="form-row" style="margin-bottom: 20px;">
+            <div>
+               <label class="dossier-label">Current Designation / Role</label>
+               <input class="dossier-input" id="ap-prof-title" placeholder="e.g., Software Engineer">
+            </div>
+            <div>
+               <label class="dossier-label">Base of Operations</label>
+               <input class="dossier-input" id="ap-prof-city" placeholder="e.g., Bengaluru, IN">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label class="dossier-label">Highest Education</label>
+            <input class="dossier-input" id="ap-prof-edu" placeholder="e.g., BSc Computer Science">
+          </div>
+          <div style="margin-bottom: 20px;">
+            <label class="dossier-label">Operational Experience</label>
+            <input class="dossier-input" id="ap-prof-exp" placeholder="e.g., 2 Yrs Full Stack Dev">
+          </div>
+          <div style="margin-bottom: 20px;">
+            <label class="dossier-label">Key Achievements</label>
+            <input class="dossier-input" id="ap-prof-ach" placeholder="e.g., Hackathon Winner">
+          </div>
+          <div style="margin-bottom: 32px;">
+            <label class="dossier-label">Combat Skills</label>
+            <input class="dossier-input" id="ap-prof-skills" placeholder="e.g., React, Python, C++">
+          </div>
+
+          <div style="margin-top:24px;">
+            <label class="dossier-label" style="margin-bottom:8px;">Core Data File (.TXT)</label>
+            <div class="drop-zone" id="master-resume-drop-zone">
+              <div class="drop-icon" style="font-size:24px; margin-bottom:4px; color:var(--ink);">📄</div>
+              <div class="drop-text" style="font-size:12px; font-family:var(--font-mono); font-weight:700; text-transform:uppercase;" id="master-drop-text-label">Upload Master Resume</div>
+              <input type="file" id="ap-master-resume-file" accept=".txt" style="display:none;">
+            </div>
+            <textarea class="form-input hidden" id="ap-master-resume"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 32px;">
+            <button class="btn-nav-outline" id="btn-reset-master-profile" style="width: 30%; justify-content: center; color: var(--fail); border-color: var(--fail);">Purge</button>
+            <button class="btn-nav-outline" id="btn-save-master-profile" style="flex: 1; background: var(--ink); color: white; justify-content: center;">Lock Profile</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--font-sans); font-weight:800; font-size:32px; text-transform:uppercase; margin-bottom: 24px; border-bottom: 3px solid var(--ink); padding-bottom:12px;">Active Intelligence</div>
+          <div id="ap-history-list" class="empty-state">
+            No active operations.<br>Proceed to the Mission Board to deploy your profile.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="ap-tab-jobs" class="hidden">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px;">
+        <div>
+            <div style="font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink3); margin-bottom:8px; letter-spacing:0.1em;">Available Deployments</div>
+            <h2 style="font-family:var(--font-sans); font-weight:800; font-size:56px; text-transform:uppercase; line-height:0.9; margin:0; letter-spacing:-0.03em;">Mission Board</h2>
+        </div>
+      </div>
+
+      <div id="ap-role-list" class="job-grid"></div>
+      <div id="ap-role-empty" class="empty-state hidden">No active missions available.</div>
+      
+      <div id="quick-predict-result" style="display:none; margin-top:40px; padding:32px; background:var(--ink); color:white; border:none; border-radius:0; box-shadow:8px 8px 0 rgba(0,0,0,0.2);">
+        <div style="display:flex; justify-content:space-between; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:12px;">
+          <div style="font-family:var(--font-mono); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.1em;">ClearGate AI Prediction Terminal</div>
+          <button onclick="document.getElementById('quick-predict-result').style.display='none'" style="background:transparent; color:white; border:none; font-family:var(--font-mono); font-weight:bold; cursor:pointer;">[CLOSE]</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:32px;">
+          <div style="width:100px; height:100px; border-radius:0; background:transparent; color:white; display:flex; align-items:center; justify-content:center; font-family:var(--font-sans); font-weight:800; font-size:40px; border:3px solid var(--accent-blue);" id="qp-score">--</div>
+          <div style="flex:1;">
+            <div style="font-weight:800; font-family:var(--font-sans); font-size:24px; text-transform:uppercase; margin-bottom:8px; color:var(--accent-blue);" id="qp-role">Target Role</div>
+            <div style="font-size:15px; font-weight:500; color:rgba(255,255,255,0.8); line-height:1.6; font-family:var(--font-mono);" id="qp-feedback">Computing predictive telemetry...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="ap-tab-growthx" class="hidden">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px;">
+        <div>
+            <div style="font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; color:var(--accent2); margin-bottom:8px; letter-spacing:0.1em;">Curated Industry Intel</div>
+            <h2 style="font-family:var(--font-sans); font-weight:800; font-size:56px; text-transform:uppercase; line-height:0.9; margin:0; letter-spacing:-0.03em;">GrowthX Feed</h2>
+        </div>
+      </div>
+      
+      <div id="growthx-empty" class="empty-state hidden" style="border-color: var(--accent2);">Lock your profile to generate your custom industry feed.</div>
+      <div id="growthx-feed" style="display: flex; flex-direction: column; gap: 24px; max-width: 800px;">
+          </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ══ BRUTALIST PRE-LOADER SCRIPT ══ */
+window.addEventListener('load', () => { 
+  let count = 0;
+  const counterEl = document.getElementById('loader-count');
+  const interval = setInterval(() => {
+    count += Math.floor(Math.random() * 18) + 4;
+    if(count >= 100) {
+      count = 100;
+      counterEl.textContent = count;
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('loading-screen').style.transform = 'translateY(-100%)';
+        showScreen('portal-chooser'); 
+      }, 300);
+      setTimeout(() => {
+         document.getElementById('loading-screen').classList.add('hidden');
+      }, 1200);
+    } else {
+      counterEl.textContent = count;
+    }
+  }, 30);
+});
+
+/* ══ FIREBASE CONFIG ══ */
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAuj58paFoYaTY4bF9FL_MBZ4cuuCSI0mM",
+    authDomain: "northstar-a4517.firebaseapp.com",
+    projectId: "northstar-a4517",
+    storageBucket: "northstar-a4517.firebasestorage.app",
+    messagingSenderId: "20000257503",
+    appId: "1:20000257503:web:9ba8ed83fb6fcb4b58006a"
+};
+
+/* ══ STATE ══ */
+const state = {
+  mode: null, user: null, companyProfile: null, applicantProfile: null,
+  blueprints: JSON.parse(localStorage.getItem('ns_v5_blueprints')) || [],
+  screenings: JSON.parse(localStorage.getItem('ns_v5_screenings')) || []
+};
+
+function saveState(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+function toast(msg, type='success') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  
+  let icon = '>';
+  if(type === 'success') icon = '✓';
+  if(type === 'error') icon = '⚠';
+  if(type === 'warn') icon = 'ⓘ';
+
+  t.innerHTML = `<span style="font-size:16px; font-family:var(--font-mono); font-weight:800;">[${icon}]</span> ${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+let firebaseReady = false, auth = null;
+try { firebase.initializeApp(FIREBASE_CONFIG); auth = firebase.auth(); firebaseReady = true; } 
+catch(e) { console.warn('Firebase error:', e.message); }
+
+const ALL_SCREENS = ['portal-chooser','company-auth','company-onboard','applicant-auth','applicant-onboard','company-app','applicant-app'];
+function showScreen(id) { ALL_SCREENS.forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id)); }
+
+/* ══ AUTH UI SETTERS ══ */
+const GOOGLE_SVG = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" width="18" alt="Google">`;
+
+function setCompanyAuthMode(mode) {
+  const el = document.getElementById('company-auth-right');
+  if (mode === 'login') {
+    el.innerHTML = `
+      <div class="form-section-title">Admin Login</div>
+      <button class="btn-social" id="btn-co-google" style="display:flex; align-items:center; justify-content:center; gap:10px;">${GOOGLE_SVG} Continue with Google</button>
+      <div class="auth-divider">or use email</div>
+      <input class="form-input form-field" id="co-login-email" type="email" placeholder="Work Email">
+      <input class="form-input form-field" id="co-login-password" type="password" placeholder="Password">
+      <button class="btn-primary accent form-field" id="btn-co-email-login">Sign In</button>
+      <div class="auth-switch">New organization? <a onclick="setCompanyAuthMode('register')">Register here</a></div>`;
+  } else {
+    el.innerHTML = `
+      <div class="form-section-title">Create Admin</div>
+      <button class="btn-social" id="btn-co-google-reg" style="display:flex; align-items:center; justify-content:center; gap:10px;">${GOOGLE_SVG} Register with Google</button>
+      <div class="auth-divider">or use email</div>
+      <input class="form-input form-field" id="co-reg-email" type="email" placeholder="Work Email">
+      <input class="form-input form-field" id="co-reg-password" type="password" placeholder="Secure Password">
+      <button class="btn-primary accent form-field" id="btn-co-email-reg">Create Account</button>
+      <div class="auth-switch">Already registered? <a onclick="setCompanyAuthMode('login')">Sign in</a></div>`;
+  }
+  document.getElementById('btn-co-google')?.addEventListener('click', () => socialLogin('company'));
+  document.getElementById('btn-co-google-reg')?.addEventListener('click', () => socialLogin('company'));
+  document.getElementById('btn-co-email-login')?.addEventListener('click', companyEmailLogin);
+  document.getElementById('btn-co-email-reg')?.addEventListener('click', companyEmailRegister);
+}
+
+function setApplicantAuthMode(mode) {
+  const el = document.getElementById('applicant-auth-right');
+  if (mode === 'login') {
+    el.innerHTML = `
+      <div class="form-section-title">Candidate Login</div>
+      <button class="btn-social" id="btn-ap-google" style="display:flex; align-items:center; justify-content:center; gap:10px;">${GOOGLE_SVG} Continue with Google</button>
+      <div class="auth-divider">or use email</div>
+      <input class="form-input form-field" id="ap-login-email" type="email" placeholder="Email Address">
+      <input class="form-input form-field" id="ap-login-password" type="password" placeholder="Password">
+      <button class="btn-primary blue form-field" id="btn-ap-email-login">Access Portal</button>
+      <div class="auth-switch">First time applying? <a onclick="setApplicantAuthMode('register')">Register here</a></div>`;
+  } else {
+    el.innerHTML = `
+      <div class="form-section-title">Create Profile</div>
+      <button class="btn-social" id="btn-ap-google-reg" style="display:flex; align-items:center; justify-content:center; gap:10px;">${GOOGLE_SVG} Register with Google</button>
+      <div class="auth-divider">or use email</div>
+      <input class="form-input form-field" id="ap-reg-email" type="email" placeholder="Email Address">
+      <input class="form-input form-field" id="ap-reg-password" type="password" placeholder="Password">
+      <button class="btn-primary blue form-field" id="btn-ap-email-reg">Create Profile</button>
+      <div class="auth-switch">Already registered? <a onclick="setApplicantAuthMode('login')">Sign in</a></div>`;
+  }
+  document.getElementById('btn-ap-google')?.addEventListener('click', () => socialLogin('applicant'));
+  document.getElementById('btn-ap-google-reg')?.addEventListener('click', () => socialLogin('applicant'));
+  document.getElementById('btn-ap-email-login')?.addEventListener('click', applicantEmailLogin);
+  document.getElementById('btn-ap-email-reg')?.addEventListener('click', applicantEmailRegister);
+}
+
+/* ══ AUTH LOGIC ══ */
+async function socialLogin(mode) {
+  if (!firebaseReady) { simulateAuth(mode); return; }
+  try {
+    const p = new firebase.auth.GoogleAuthProvider();
+    const cred = await auth.signInWithPopup(p);
+    state.mode = mode; state.user = cred.user; routeUserAfterAuth();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function companyEmailLogin() {
+  if (!firebaseReady) return simulateAuth('company');
+  try {
+    const cred = await auth.signInWithEmailAndPassword(document.getElementById('co-login-email').value, document.getElementById('co-login-password').value);
+    state.mode = 'company'; state.user = cred.user; routeUserAfterAuth();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function companyEmailRegister() {
+  if (!firebaseReady) return simulateAuth('company');
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(document.getElementById('co-reg-email').value, document.getElementById('co-reg-password').value);
+    state.mode = 'company'; state.user = cred.user; routeUserAfterAuth();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function applicantEmailLogin() {
+  if (!firebaseReady) return simulateAuth('applicant');
+  try {
+    const cred = await auth.signInWithEmailAndPassword(document.getElementById('ap-login-email').value, document.getElementById('ap-login-password').value);
+    state.mode = 'applicant'; state.user = cred.user; routeUserAfterAuth();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function applicantEmailRegister() {
+  if (!firebaseReady) return simulateAuth('applicant');
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(document.getElementById('ap-reg-email').value, document.getElementById('ap-reg-password').value);
+    state.mode = 'applicant'; state.user = cred.user; routeUserAfterAuth();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function simulateAuth(mode) {
+  state.mode = mode;
+  state.user = { uid: mode+'_sim_'+Date.now(), displayName: mode==='company'?'HR Team':'Applicant Test', email: 'test@proto.co' };
+  routeUserAfterAuth();
+}
+
+function routeUserAfterAuth() {
+  if (state.mode === 'company') {
+    const saved = localStorage.getItem('ns_v5_co_profile_' + state.user.uid);
+    if (saved) { state.companyProfile = JSON.parse(saved); initCompanyApp(); }
+    else { 
+      if(state.user.email) document.getElementById('co-email').value = state.user.email;
+      if(state.user.displayName) document.getElementById('co-contact-name').value = state.user.displayName;
+      showScreen('company-onboard'); 
+    }
+  } else {
+    const saved = localStorage.getItem('ns_v5_ap_profile_' + state.user.uid);
+    if (saved) { state.applicantProfile = JSON.parse(saved); initApplicantApp(); }
+    else { 
+      if(state.user.email) document.getElementById('ap-email').value = state.user.email;
+      if(state.user.displayName) {
+          document.getElementById('ap-fname').value = state.user.displayName.split(' ')[0];
+          document.getElementById('ap-lname').value = state.user.displayName.split(' ').slice(1).join(' ');
+      }
+      showScreen('applicant-onboard'); 
+    }
+  }
+}
+
+/* ══ ONBOARDING ══ */
+document.getElementById('btn-co-onboard-submit').addEventListener('click', () => {
+  const name = document.getElementById('co-company-name').value;
+  if (!name) return toast('Company name required', 'error');
+  state.companyProfile = { companyName: name, email: document.getElementById('co-email').value };
+  saveState('ns_v5_co_profile_' + state.user.uid, state.companyProfile);
+  initCompanyApp();
+});
+
+document.getElementById('btn-ap-onboard-submit').addEventListener('click', () => {
+  const fname = document.getElementById('ap-fname').value;
+  if (!fname) return toast('First name required', 'error');
+  state.applicantProfile = { firstName: fname, lastName: document.getElementById('ap-lname').value, email: document.getElementById('ap-email').value, resume: '', education:'', experience:'', achievements:'', skills:'', title:'', city:'' };
+  saveState('ns_v5_ap_profile_' + state.user.uid, state.applicantProfile);
+  initApplicantApp();
+});
+
+/* ══ COMPANY APP INIT & LOGIC ══ */
+function showPage(pageId) {
+  document.querySelectorAll('.sidebar .nav-item').forEach(x => x.classList.remove('active'));
+  const activeNav = document.querySelector(`.sidebar .nav-item[data-page="${pageId}"]`);
+  if(activeNav) activeNav.classList.add('active');
+  document.querySelectorAll('.main-content .page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  const titleMap = { 'dashboard':'Dashboard Overview', 'blueprints':'Role Blueprints', 'create-bp':'Create New Role', 'results':'Applicant Rankings' };
+  document.getElementById('co-page-title').textContent = titleMap[pageId];
+  document.getElementById('co-back-btn').style.display = (pageId === 'dashboard') ? 'none' : 'inline-flex';
+}
+
+function initCompanyApp() {
+  toast('Admin authenticated successfully.', 'success');
+  showScreen('company-app');
+  document.getElementById('sidebar-co-name').textContent = state.companyProfile.companyName;
+  document.querySelectorAll('.sidebar .nav-item[data-page]').forEach(n => { n.addEventListener('click', () => showPage(n.dataset.page)); });
+  renderCompanyBlueprints(); renderCompanyScreenings(); showPage('dashboard');
+}
+
+document.getElementById('btn-save-bp').addEventListener('click', () => {
+  const title = document.getElementById('cbp-title').value;
+  const score = document.getElementById('cbp-score').value;
+  if(!title || !score) return toast('Title and Threshold Score are required', 'error');
+  
+  const bp = { id: 'bp_' + Date.now(), ownerUid: state.user.uid, company: state.companyProfile.companyName, role: title, department: document.getElementById('cbp-dept').value, experience: document.getElementById('cbp-exp').value, skills: document.getElementById('cbp-skills').value, passingScore: parseInt(score) };
+  
+  state.blueprints.unshift(bp); saveState('ns_v5_blueprints', state.blueprints); toast('Role Blueprint saved to database.', 'success');
+  document.getElementById('cbp-title').value = ''; document.getElementById('cbp-skills').value = ''; showPage('blueprints'); renderCompanyBlueprints();
+});
+
+function renderCompanyBlueprints() {
+  const myBPs = state.blueprints.filter(bp => bp.ownerUid === state.user.uid);
+  const grid = document.getElementById('blueprint-grid'); const empty = document.getElementById('bp-empty-state');
+  document.getElementById('stat-bps').textContent = myBPs.length;
+  
+  if (myBPs.length === 0) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  
+  grid.innerHTML = myBPs.map(bp => `
+    <div class="card" style="padding:24px; margin:0; display:flex; flex-direction:column; justify-content:space-between; border:2px solid var(--ink);">
+      <div>
+        <div style="font-family:var(--font-mono); font-weight:700; font-size:10px; color:var(--ink); margin-bottom:6px; text-transform:uppercase;">${bp.department || 'General'}</div>
+        <div style="font-family:var(--font-sans); font-weight:800; font-size:24px; text-transform:uppercase; margin-bottom:8px; line-height:1.1;">${bp.role}</div>
+        <div style="font-size:13px; font-weight:500; color:var(--ink2); margin-bottom:16px;">Exp: ${bp.experience || 'Not specified'}</div>
+      </div>
+      <div style="border-top:1px solid var(--border-dark); padding-top:16px;">
+        <div style="font-family:var(--font-mono); font-weight:700; font-size:10px; color:var(--ink); margin-bottom:4px; text-transform:uppercase;">Target Threshold</div>
+        <div style="font-size:24px; font-weight:800; font-family:var(--font-sans);">${bp.passingScore}/100</div>
+      </div>
+    </div>`).join('');
+}
+
+const BACKEND_URL = "https://northstar-backend-j6ye.onrender.com/api/evaluate";
+
+async function callGemini(promptText, retries = 3) {
+  const thinkingText = document.getElementById('thinking-text');
+  try {
+    if(thinkingText) {
+      thinkingText.innerText = retries === 3 ? "Connecting to Secure AI... (Cold starts take ~30s)" : `Waking up server... (Attempts remaining: ${retries})`;
+    }
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: promptText })
+    });
+
+    if (!res.ok) throw new Error("Server not ready yet.");
+    const data = await res.json();
+    return data.aiResponse;
+  } catch (error) {
+    if (retries > 0) {
+      if(thinkingText) thinkingText.innerText = "Server is booting. Waiting 10 seconds...";
+      await new Promise(r => setTimeout(r, 10000));
+      return callGemini(promptText, retries - 1); 
+    } else {
+      throw new Error("Server took too long to wake up. Please refresh and try again.");
+    }
+  }
+}
+
+/* ══ COMPANY ACTIONS ══ */
+window.toggleDetails = function(id) {
+    document.getElementById('details-' + id).classList.toggle('open');
+};
+
+window.setDecision = function(id, decision, event) {
+    event.stopPropagation(); 
+    const sc = state.screenings.find(s => s.id === id);
+    if(sc) {
+        sc.finalDecision = decision;
+        saveState('ns_v5_screenings', state.screenings);
+        renderCompanyScreenings();
+    }
+};
+
+window.publishResult = function(id, event) {
+    event.stopPropagation();
+    const sc = state.screenings.find(s => s.id === id);
+    if(sc) {
+        if(sc.finalDecision === 'PENDING') return toast('You must select Hire or Reject first.', 'warn');
+        sc.published = true;
+        saveState('ns_v5_screenings', state.screenings);
+        renderCompanyScreenings();
+        toast('Result officially published to candidate!', 'success');
+    }
+};
+
+function renderCompanyScreenings() {
+  let myScreenings = state.screenings.filter(s => s.companyUid === state.user.uid);
+  myScreenings.sort((a, b) => b.score - a.score);
+  const openRows = Array.from(document.querySelectorAll('.expandable-row.open')).map(row => row.id);
+  
+  const tbody = document.getElementById('results-tbody'); const recent = document.getElementById('recent-screenings-list');
+  let passedAI = 0; let publishedCount = 0; 
+  
+  myScreenings.forEach(s => { 
+      if(s.status === 'PASS') passedAI++; 
+      if(s.published) publishedCount++;
+  });
+  
+  document.getElementById('stat-total').textContent = myScreenings.length; 
+  document.getElementById('stat-passed').textContent = passedAI; 
+  document.getElementById('stat-published').textContent = publishedCount;
+  
+  if(myScreenings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="padding:16px; text-align:center; color:var(--ink3);">No applications received yet.</td></tr>';
+      recent.innerHTML = 'Waiting for candidates to apply.';
+      recent.classList.add('empty-state');
+      recent.style.border = '1px dashed var(--border-dark)';
+      return;
+  }
+  
+  const rows = myScreenings.map((s, index) => {
+      let decisionText = "PENDING";
+      let badgeClass = "";
+      if(s.finalDecision === 'HIRED') { decisionText = "OFFERED"; badgeClass = "pass"; }
+      if(s.finalDecision === 'REJECTED') { decisionText = "REJECTED"; badgeClass = "fail"; }
+      if(s.published) decisionText += " (PUBLISHED)";
+
+      const isOpen = openRows.includes(`details-${s.id}`) ? 'open' : '';
+
+      return `
+      <tr class="candidate-row" style="border-bottom:1px solid var(--border-dark); cursor:pointer;" onclick="toggleDetails('${s.id}')">
+        <td style="padding:16px;"><span style="font-weight:800; color:var(--ink3); margin-right:8px;">#${index+1}</span> <span style="font-weight:700;">${s.applicantName}</span></td>
+        <td style="padding:16px; font-weight:500;">${s.role}</td>
+        <td style="padding:16px; font-family:var(--font-sans); font-size:16px; font-weight:800; color:${s.status==='PASS'?'var(--pass)':'var(--ink)'};">${s.score}/100 <span style="font-size:11px; font-weight:500; color:var(--ink3); margin-left:4px;">(${s.status})</span></td>
+        <td style="padding:16px;"><span class="status-badge ${badgeClass}" style="${badgeClass===''?'background:#F3F4F6; color:#374151; border:1px solid #D1D5DB;':''}">${decisionText} ▼</span></td>
+      </tr>
+      <tr id="details-${s.id}" class="expandable-row ${isOpen}">
+        <td colspan="4" style="padding:24px; border-bottom:2px solid var(--ink);">
+            <div style="display:flex; gap:32px;">
+                <div style="flex:1;">
+                    <div style="font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; margin-bottom:8px; color:var(--ink3);">AI Evaluation Reasoning</div>
+                    <div style="font-size:14px; line-height:1.6; color:var(--ink);">${s.aiReason}</div>
+                </div>
+                <div style="width:300px; padding-left:32px; border-left:1px solid var(--border-dark);">
+                    <div style="font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; margin-bottom:12px; color:var(--ink3);">HR Action</div>
+                    <div style="display:flex; gap:8px; margin-bottom:16px;">
+                        <button class="btn-primary" style="flex:1; padding:8px; ${s.finalDecision==='HIRED'?'background:var(--pass); border:none;':'background:white; color:var(--ink); border:1px solid var(--border-dark);'}" onclick="setDecision('${s.id}', 'HIRED', event)">Hire</button>
+                        <button class="btn-primary" style="flex:1; padding:8px; ${s.finalDecision==='REJECTED'?'background:var(--fail); border:none;':'background:white; color:var(--ink); border:1px solid var(--border-dark);'}" onclick="setDecision('${s.id}', 'REJECTED', event)">Reject</button>
+                    </div>
+                    <button class="btn-primary" style="${s.published ? 'background:#F3F4F6; color:var(--ink3); cursor:not-allowed;' : 'background:var(--ink);'}" onclick="publishResult('${s.id}', event)" ${s.published ? 'disabled' : ''}>
+                        ${s.published ? 'Result Published ✓' : 'Publish Result to Candidate'}
+                    </button>
+                </div>
+            </div>
+        </td>
+      </tr>`
+  }).join('');
+  
+  tbody.innerHTML = rows;
+  recent.innerHTML = `<table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr style="border-bottom:2px solid var(--ink);"><th style="padding:10px 0; font-family:var(--font-mono); font-size:10px; font-weight:700; text-transform:uppercase; color:var(--ink);">Rank</th><th style="padding:10px 0; font-family:var(--font-mono); font-size:10px; font-weight:700; text-transform:uppercase; color:var(--ink);">Candidate</th><th style="padding:10px 0; font-family:var(--font-mono); font-size:10px; font-weight:700; text-transform:uppercase; color:var(--ink);">Score</th></tr></thead><tbody>${myScreenings.slice(0,5).map((s, idx)=> `<tr><td style="padding:12px 0; font-weight:800; color:var(--ink3);">#${idx+1}</td><td style="padding:12px 0; font-weight:600;">${s.applicantName}</td><td style="padding:12px 0;"><span class="status-badge ${s.status === 'PASS'?'pass':'fail'}">${s.score}</span></td></tr>`).join('')}</tbody></table>`;
+  recent.classList.remove('empty-state');
+  recent.style.border = 'none';
+}
+
+/* ══ APPLICANT APP ══ */
+function switchApTab(tab) {
+  document.getElementById('ap-tab-profile').classList.add('hidden');
+  document.getElementById('ap-tab-jobs').classList.add('hidden');
+  document.getElementById('ap-tab-growthx').classList.add('hidden');
+  
+  document.getElementById('ap-tab-' + tab).classList.remove('hidden');
+  document.getElementById('quick-predict-result').style.display = 'none';
+
+  document.querySelectorAll('.ap-nav-link').forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(tab)) {
+      link.classList.add('active');
+    }
+  });
+}
+
+function initApplicantApp() {
+  toast('Candidate Identity Verified.', 'success');
+  showScreen('applicant-app');
+  const prof = state.applicantProfile;
+  
+  document.getElementById('ap-topbar-name').textContent = prof.firstName + " " + prof.lastName;
+
+  // Pre-fill Profile Form
+  document.getElementById('ap-prof-title').value = prof.title || '';
+  document.getElementById('ap-prof-city').value = prof.city || '';
+  document.getElementById('ap-prof-edu').value = prof.education || '';
+  document.getElementById('ap-prof-exp').value = prof.experience || '';
+  document.getElementById('ap-prof-ach').value = prof.achievements || '';
+  document.getElementById('ap-prof-skills').value = prof.skills || '';
+  if(prof.resume) {
+    document.getElementById('ap-master-resume').value = prof.resume;
+    document.getElementById('master-drop-text-label').textContent = 'Resume Locked ✓';
+  }
+  
+  updateApplicantStats();
+  renderApplicantJobs();
+  renderGrowthX();
+}
+
+/* Save Left Panel Profile Data */
+document.getElementById('btn-save-master-profile').addEventListener('click', () => {
+  const title = document.getElementById('ap-prof-title').value.trim();
+  const city = document.getElementById('ap-prof-city').value.trim();
+  const edu = document.getElementById('ap-prof-edu').value.trim();
+  const exp = document.getElementById('ap-prof-exp').value.trim();
+  const skills = document.getElementById('ap-prof-skills').value.trim();
+  
+  if(!title || !edu || !exp || !skills) return toast('Designation, Education, Experience, and Skills are required.', 'warn');
+
+  state.applicantProfile.title = title;
+  state.applicantProfile.city = city;
+  state.applicantProfile.education = edu;
+  state.applicantProfile.experience = exp;
+  state.applicantProfile.achievements = document.getElementById('ap-prof-ach').value.trim();
+  state.applicantProfile.skills = skills;
+  state.applicantProfile.resume = document.getElementById('ap-master-resume').value.trim();
+  
+  saveState('ns_v5_ap_profile_' + state.user.uid, state.applicantProfile);
+  toast('Dossier Locked & Saved.', 'success');
+  renderGrowthX(); // Re-render feed based on new skills
+});
+
+/* Clear Profile Data */
+document.getElementById('btn-reset-master-profile').addEventListener('click', () => {
+  document.getElementById('ap-prof-title').value = '';
+  document.getElementById('ap-prof-city').value = '';
+  document.getElementById('ap-prof-edu').value = '';
+  document.getElementById('ap-prof-exp').value = '';
+  document.getElementById('ap-prof-ach').value = '';
+  document.getElementById('ap-prof-skills').value = '';
+  document.getElementById('ap-master-resume').value = '';
+  document.getElementById('ap-master-resume-file').value = ''; 
+  document.getElementById('master-drop-text-label').textContent = 'Upload Master Resume';
+
+  state.applicantProfile.title = '';
+  state.applicantProfile.city = '';
+  state.applicantProfile.education = '';
+  state.applicantProfile.experience = '';
+  state.applicantProfile.achievements = '';
+  state.applicantProfile.skills = '';
+  state.applicantProfile.resume = '';
+  
+  saveState('ns_v5_ap_profile_' + state.user.uid, state.applicantProfile);
+  toast('Identity Dossier Purged.', 'warn');
+  renderGrowthX();
+});
+
+/* Handle File Upload on Profile */
+const masterDropZone = document.getElementById('master-resume-drop-zone');
+const masterFileInput = document.getElementById('ap-master-resume-file');
+
+masterDropZone.addEventListener('click', () => masterFileInput.click());
+masterDropZone.addEventListener('dragover', (e) => { e.preventDefault(); masterDropZone.classList.add('dragover'); });
+masterDropZone.addEventListener('dragleave', (e) => { e.preventDefault(); masterDropZone.classList.remove('dragover'); });
+masterDropZone.addEventListener('drop', (e) => {
+  e.preventDefault(); masterDropZone.classList.remove('dragover');
+  if(e.dataTransfer.files.length) { masterFileInput.files = e.dataTransfer.files; handleMasterFileUpload(masterFileInput.files[0]); }
+});
+masterFileInput.addEventListener('change', (e) => { if(e.target.files.length) handleMasterFileUpload(e.target.files[0]); });
+
+function handleMasterFileUpload(file) {
+  if(file.name.endsWith('.txt')) {
+    const reader = new FileReader();
+    reader.onload = function(e) { 
+      document.getElementById('ap-master-resume').value = e.target.result; 
+      document.getElementById('master-drop-text-label').textContent = `Loaded: ${file.name} ✓`;
+    };
+    reader.readAsText(file);
+  } else { toast('Format must be .txt', 'warn'); }
+}
+
+function updateApplicantStats() {
+  const myApps = state.screenings.filter(a => a.applicantUid === state.user.uid);
+  
+  let selected = 0; let pending = 0;
+  myApps.forEach(a => { 
+      if(a.published && a.finalDecision === 'HIRED') selected++; 
+      else if (!a.published || a.finalDecision === 'PENDING') pending++; 
+  });
+  
+  document.getElementById('ap-stat-applied').textContent = myApps.length;
+  document.getElementById('ap-stat-selected').textContent = selected;
+  document.getElementById('ap-stat-rejected').textContent = pending;
+
+  if (myApps.length > 0) {
+    document.getElementById('ap-history-list').innerHTML = myApps.map(a => {
+        // Evaluate Visibility Status
+        let statusBadge = `<span class="status-badge" style="background:#F3F4F6; color:#374151; border:2px solid var(--ink);"><span class="icon-anim-glass">⏳</span> Pending Review</span>`;
+        let feedbackHtml = ``;
+
+        if (a.published) {
+            if(a.finalDecision === 'HIRED') {
+                statusBadge = `<span class="status-badge pass" style="border:2px solid var(--pass);"><span class="icon-anim-star">🌟</span> Mission Secured</span>`;
+                feedbackHtml = `<div style="margin-top:16px; padding:16px; background:#ECFDF5; border-left:4px solid var(--pass); border-radius:0;">
+                                  <strong style="display:block; margin-bottom:8px; color:var(--pass); font-family:var(--font-mono); text-transform:uppercase;">Official Company Intel:</strong> 
+                                  <span style="color:#065F46; line-height:1.5;">${a.aiReason}</span>
+                                </div>`;
+            } else if(a.finalDecision === 'REJECTED') {
+                statusBadge = `<span class="status-badge fail" style="border:2px solid var(--fail);"><span class="icon-anim-cactus">🌵</span> Mission Failed</span>`;
+                feedbackHtml = `<div style="margin-top:16px; padding:16px; background:#FEF2F2; border-left:4px solid var(--fail); border-radius:0;">
+                                  <strong style="display:block; margin-bottom:8px; color:var(--fail); font-family:var(--font-mono); text-transform:uppercase;">Official Company Intel:</strong> 
+                                  <span style="color:#991B1B; line-height:1.5;">${a.aiReason}</span>
+                                </div>`;
+            }
+        }
+
+        return `
+        <div style="padding:24px; border:3px solid var(--ink); background:var(--surface); margin-bottom:16px; box-shadow:6px 6px 0 rgba(9,9,11,0.05);">
+           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+             <div>
+                <div style="font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; margin-bottom:4px;">${a.company}</div>
+                <div style="font-weight:800; font-family:var(--font-sans); font-size:22px; text-transform:uppercase; line-height:1;">${a.role}</div>
+             </div>
+             ${statusBadge}
+           </div>
+           ${feedbackHtml}
+        </div>`
+    }).join('');
+    
+    document.getElementById('ap-history-list').classList.remove('empty-state');
+    document.getElementById('ap-history-list').style.padding = '0';
+    document.getElementById('ap-history-list').style.border = 'none';
+  } else {
+      document.getElementById('ap-history-list').innerHTML = 'No active operations.<br>Proceed to the Mission Board to deploy your profile.';
+      document.getElementById('ap-history-list').classList.add('empty-state');
+      document.getElementById('ap-history-list').style.padding = '60px 20px';
+  }
+}
+
+/* Render Job List */
+function renderApplicantJobs() {
+  const list = document.getElementById('ap-role-list');
+  if (state.blueprints.length === 0) {
+    list.innerHTML = ''; document.getElementById('ap-role-empty').classList.remove('hidden'); return;
+  }
+  document.getElementById('ap-role-empty').classList.add('hidden');
+  
+  list.innerHTML = state.blueprints.map(bp => `
+    <div class="job-list-card">
+      <div class="job-info-area" style="margin-bottom: 24px;">
+        <div style="font-family:var(--font-mono); font-weight:700; font-size:11px; color:var(--ink3); text-transform:uppercase; margin-bottom:6px; letter-spacing:0.05em;">${bp.company}</div>
+        <div style="font-family:var(--font-sans); font-weight:800; font-size:28px; text-transform:uppercase; margin-bottom:8px; line-height:1;">${bp.role}</div>
+        <div style="font-size:14px; font-weight:600; color:var(--ink); padding:6px 10px; background:#F4F4F5; display:inline-block;">Exp: ${bp.experience || 'Entry level'}</div>
+      </div>
+      <div class="job-action-area" style="display:flex; flex-direction:column; gap:12px;">
+        <button class="btn-nav-outline" style="border-radius:0; justify-content:center; width:100%;" onclick="quickPredict('${bp.id}', this)">Analyze Probability</button>
+        <button class="btn-primary" style="border-radius:0; width:100%; font-size:15px; text-transform:uppercase;" onclick="applyToRole('${bp.id}', this)">Deploy Profile</button>
+      </div>
+    </div>`).join('');
+}
+
+/* Prediction Logic */
+async function quickPredict(bpId, btnElement) {
+  const prof = state.applicantProfile;
+  if (!prof.education || !prof.experience || !prof.skills) return toast('Complete Identity Dossier to run predictions.', 'warn');
+  
+  const bp = state.blueprints.find(b => b.id === bpId);
+  const originalText = btnElement.textContent;
+  btnElement.innerHTML = '<span class="spinner" style="width:12px; height:12px; border:2px solid var(--ink); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; display:inline-block;"></span>'; 
+  btnElement.disabled = true;
+
+  const candidateData = `Title: ${prof.title}. Location: ${prof.city}. Education: ${prof.education}. Experience: ${prof.experience}. Skills: ${prof.skills}. Achievements: ${prof.achievements}. Detailed Resume: ${prof.resume}`;
+  const prompt = `Act as an AI resume pre-screener. Compare Candidate Profile against Company Blueprint. Blueprint: Role ${bp.role}, Required Skills: ${bp.skills}. Candidate Data: ${candidateData}. Return strictly JSON: {"predictedScore": <number 0-100>, "feedback": "<one short sentence why>"}`;
+  
+  try {
+    const raw = await callGemini(prompt);
+    const parsed = JSON.parse(raw.replace(/```json/g,'').replace(/```/g,'').trim());
+    
+    document.getElementById('quick-predict-result').style.display = 'block';
+    document.getElementById('qp-score').textContent = parsed.predictedScore;
+    document.getElementById('qp-role').textContent = "Target: " + bp.role;
+    document.getElementById('qp-feedback').textContent = parsed.feedback;
+    
+    document.getElementById('quick-predict-result').scrollIntoView({behavior: 'smooth', block: 'end'});
+  } catch(e) { toast("Telemetry error: " + e.message, 'error'); }
+  finally { btnElement.textContent = originalText; btnElement.disabled = false; }
+}
+
+/* Apply Flow WITH FRAUD DETECTION */
+async function applyToRole(bpId, btnElement) {
+  const prof = state.applicantProfile;
+  if (!prof.title || !prof.education || !prof.experience || !prof.skills) return toast('Complete Identity Dossier first.', 'warn');
+  
+  const bp = state.blueprints.find(b => b.id === bpId);
+  
+  const alreadyApplied = state.screenings.find(s => s.applicantUid === state.user.uid && s.role === bp.role && s.companyUid === bp.ownerUid);
+  if (alreadyApplied) return toast('You have already deployed to this mission.', 'warn');
+  
+  toast(`Transmitting data to ${bp.company}...`);
+  const originalText = btnElement.textContent;
+  btnElement.innerHTML = '<span class="spinner" style="width:12px; height:12px; border:2px white; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; display:inline-block;"></span> Transmitting...';
+  btnElement.disabled = true;
+
+  const candidateData = `Title: ${prof.title}. City: ${prof.city}. Education: ${prof.education}. Experience: ${prof.experience}. Skills: ${prof.skills}. Achievements: ${prof.achievements}. Detailed Resume: ${prof.resume}`;
+  
+  const prompt = `
+    Act as an expert HR Evaluator and Fraud Detector. 
+    Candidate Google Auth Name: ${prof.firstName} ${prof.lastName}
+    Candidate Claimed Data: ${candidateData}
+    Blueprint Role: ${bp.role} 
+    Required Skills: ${bp.skills}
+
+    STEP 1: AUTHENTICATION CHECK
+    Verify if the resume data makes logical sense. Look for:
+    - Does the claimed experience timeline match reality?
+    - Are they just blindly keyword stuffing?
+    - Does the tone sound like a highly exaggerated AI hallucination?
+
+    STEP 2: EVALUATION
+    If the resume appears fraudulent, illogical, or fake, give it a score of 0, status "FAIL", and explain the fraud suspicion in the aiReason.
+    If it appears legitimate, evaluate it strictly on merit against the Blueprint.
+
+    Return STRICTLY JSON: {"score": <number 0-100>, "status": "<PASS or FAIL>", "aiReason": "<2 to 3 sentences explaining the candidate's exact strengths/weaknesses, or explaining why the resume was flagged as suspicious.>"}
+  `;
+
+  try {
+    const raw = await callGemini(prompt);
+    const parsed = JSON.parse(raw.replace(/```json/g,'').replace(/```/g,'').trim());
+    
+    const app = {
+      id: 'ap_' + Date.now(), 
+      applicantUid: state.user.uid,
+      applicantName: prof.firstName + (prof.lastName ? ' ' + prof.lastName : ''),
+      companyUid: bp.ownerUid, 
+      role: bp.role, 
+      company: bp.company,
+      score: parsed.score, 
+      status: parsed.status, 
+      aiReason: parsed.aiReason || "Profile evaluated by AI.",
+      finalDecision: 'PENDING',
+      published: false,
+      date: new Date().toISOString()
+    };
+    
+    state.screenings.unshift(app);
+    saveState('ns_v5_screenings', state.screenings);
+    
+    toast('Profile successfully deployed.');
+    updateApplicantStats();
+    switchApTab('profile'); 
+    
+  } catch(e) { 
+      toast("Server warming up. Try again in 10s.", 'error'); 
+  } finally {
+      btnElement.textContent = originalText;
+      btnElement.disabled = false;
+  }
+}
+
+/* ══ GROWTHX FEED LOGIC ══ */
+const growthXData = [
+  {
+    keywords: ['ai', 'machine learning', 'data', 'python', 'llm', 'scientist'],
+    tweets: [
+      { name: "Sam Altman", handle: "@sama", content: "The cost of intelligence is going to fall close to zero. The future belongs to those who learn to harness it today.", link: "https://twitter.com/sama" },
+      { name: "Andrej Karpathy", handle: "@karpathy", content: "English is the hottest new programming language. Prompt engineering is just the beginning of the AI revolution.", link: "https://twitter.com/karpathy" },
+      { name: "Yann LeCun", handle: "@ylecun", content: "Open-source AI platforms will eventually win over proprietary ones. It is how the web was built.", link: "https://twitter.com/ylecun" }
+    ]
+  },
+  {
+    keywords: ['frontend', 'react', 'web', 'javascript', 'css', 'ui', 'ux', 'design'],
+    tweets: [
+      { name: "Guillermo Rauch", handle: "@rauchg", content: "Every company is a software company, and every software company is a web company. Make the web faster.", link: "https://twitter.com/rauchg" },
+      { name: "Dan Abramov", handle: "@dan_abramov", content: "It's fine to use simple tools. You don't need a massive, complex architecture to build a truly great product.", link: "https://twitter.com/dan_abramov" },
+      { name: "Brian Chesky", handle: "@bchesky", content: "If you want to build a great product, you have to design it from the user's perspective backward to the technology.", link: "https://twitter.com/bchesky" }
+    ]
+  },
+  {
+    keywords: ['startup', 'founder', 'product', 'management', 'business', 'growth'],
+    tweets: [
+      { name: "Paul Graham", handle: "@paulg", content: "Do things that don't scale. Talk to your users constantly. Build exactly what they want.", link: "https://twitter.com/paulg" },
+      { name: "Garry Tan", handle: "@garrytan", content: "Move fast, break things, but never break your core value proposition to the customer.", link: "https://twitter.com/garrytan" },
+      { name: "Elon Musk", handle: "@elonmusk", content: "Constantly seek criticism. A well thought out critique of whatever you're doing is as valuable as gold.", link: "https://twitter.com/elonmusk" }
+    ]
+  },
+  {
+    keywords: ['general'], // Fallback
+    tweets: [
+      { name: "Naval Ravikant", handle: "@naval", content: "Play iterated games. All the returns in life, whether in wealth, relationships, or knowledge, come from compound interest.", link: "https://twitter.com/naval" },
+      { name: "Lex Fridman", handle: "@lexfridman", content: "Be kind to people. It's the most powerful algorithm for success.", link: "https://twitter.com/lexfridman" }
+    ]
+  }
+];
+
+function renderGrowthX() {
+  const prof = state.applicantProfile;
+  const feedContainer = document.getElementById('growthx-feed');
+  const emptyState = document.getElementById('growthx-empty');
+
+  if (!prof || !prof.title || !prof.skills) {
+      feedContainer.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      return;
+  }
+  
+  emptyState.classList.add('hidden');
+  const roleStr = ((prof.title || '') + ' ' + (prof.skills || '')).toLowerCase();
+  
+  let selectedTweets = null;
+  for (let cat of growthXData) {
+      if (cat.keywords.some(kw => roleStr.includes(kw))) {
+          selectedTweets = cat.tweets;
+          break;
+      }
+  }
+  if (!selectedTweets) selectedTweets = growthXData.find(d => d.keywords.includes('general')).tweets;
+
+  feedContainer.innerHTML = selectedTweets.map(t => `
+    <a href="${t.link}" target="_blank" class="gx-card">
+       <div class="gx-header">
+         <div class="gx-avatar">${t.name.charAt(0)}</div>
+         <div>
+           <div class="gx-name">${t.name}</div>
+           <div class="gx-handle">${t.handle}</div>
+         </div>
+         <div style="margin-left: auto; color: var(--accent2); font-weight:800;">↗</div>
+       </div>
+       <div class="gx-content">"${t.content}"</div>
+    </a>
+  `).join('');
+}
+
+/* Global Navigation */
+document.getElementById('btn-company-logout').onclick = () => { state.user=null; location.reload(); };
+document.getElementById('btn-applicant-logout').onclick = () => { state.user=null; location.reload(); };
+
+</script>
+</body>
+</html>
